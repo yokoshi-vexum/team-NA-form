@@ -1,0 +1,28 @@
+{
+  "clientChannels": [
+    {
+      "id": "C0123456789",
+      "name": "株式会社ABC",
+      "channelName": "#na-client-abc"
+    },
+    {
+      "id": "C0987654321",
+      "name": "株式会社XYZ",
+      "channelName": "#na-client-xyz"
+    }
+  ],
+  "jochiDates": [
+    {
+      "date": "2026-04-20",
+      "clientName": "株式会社ABC",
+      "channelId": "C0123456789"
+    },
+    {
+      "date": "2026-04-27",
+      "clientName": "株式会社XYZ",
+      "channelId": "C0987654321"
+    }
+  ],
+  "reminderTime": "20:00",
+  "timezone": "Asia/Tokyo"
+}
