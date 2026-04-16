@@ -5,13 +5,13 @@ function buildChannelSelectorBlock() {
   return {
     type: 'input',
     block_id: 'channel_block',
-    label: { type: 'plain_text', text: '投稿先チャンネル' },
+    label: { type: 'plain_text', text: 'クライアント名' },
     element: {
       type: 'static_select',
       action_id: 'channel_select',
-      placeholder: { type: 'plain_text', text: 'チャンネルを選択...' },
+      placeholder: { type: 'plain_text', text: 'クライアントを選択...' },
       options: channels.map((ch) => ({
-        text: { type: 'plain_text', text: `${ch.name}  (${ch.channelName})` },
+        text: { type: 'plain_text', text: ch.name },
         value: ch.id,
       })),
     },
