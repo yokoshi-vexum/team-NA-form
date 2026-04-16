@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>チームNA 報告フォーム</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      background: #f4ede4;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+      color: #1d1c1d;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .page-header .logo {
+      font-size: 22px;
+      font-weight: 900;
+      color: #4a154b;
+      letter-spacing: 1px;
+    }
+    .page-header .sub {
+      font-size: 13px;
+      color: #7a5c00;
+      margin-top: 4px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    .tab-btn {
+      padding: 9px 20px;
+      border: none;
+      background: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #616061;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: #4a154b;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(74,21,75,0.3);
+    }
+    .tab-btn:hover:not(.active) { background: #f8f0f8; color: #4a154b; }
+
+    .form-card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      overflow: hidden;
+      display: none;
+    }
+    .form-card.visible { display: block; }
+
+    .card-header {
+      background: #4a154b;
+      padding: 18px 24px;
+      color: #fff;
+    }
+    .card-header h2 { font-size: 17px; font-weight: 900; }
+    .card-header p { font-size: 12px; opacity: 0.75; margin-top: 3px; }
+
+    .card-body { padding: 20px 24px; }
+
+    .block { margin-bottom: 18px; }
+    .block-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1d1c1d;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .required {
+      background: #e01e5a;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .optional { color: #9e9e9e; font-size: 11px; font-weight: 400; }
+    .block-hint { font-size: 11px; color: #9e9e9e; margin-bottom: 6px; margin-top: -2px; }
+
+    input[type="text"], input[type="url"], textarea, select {
+      width: 100%;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px 13px;
+      font-size: 14px;
+      color: #1d1c1d;
+      background: #fafafa;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      font-family: inherit;
+      -webkit-appearance: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: #4a154b;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(74,21,75,0.1);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23616061' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 13px center;
+      padding-right: 36px;
+    }
+    input[type="date"] {
+      width: 100%;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px 13px;
+      font-size: 14px;
+      color: #1d1c1d;
+      background: #fafafa;
+      outline: none;
+      font-family: inherit;
+    }
+    input[type="date"]:focus { border-color: #4a154b; background: #fff; }
+
+    .radio-group, .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-option, .checkbox-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 13px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      background: #fafafa;
+      transition: all 0.15s;
+    }
+    .radio-option:hover, .checkbox-option:hover { border-color: #4a154b; background: #fdf5ff; }
+    .radio-option input, .checkbox-option input { accent-color: #4a154b; width: 16px; height: 16px; flex-shrink: 0; }
+
+    .divider { border: none; border-top: 1px solid #f0e8f0; margin: 18px 0; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4a154b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #f0e8f0;
+    }
+
+    .highlight-block {
+      background: #fffbea;
+      border: 1.5px solid #f0d040;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .highlight-block .block-label { color: #7a5c00; }
+    .highlight-block .block-hint { color: #a07820; }
+    .highlight-block textarea { border-color: #f0d040; background: #fff; }
+    .highlight-block textarea:focus { border-color: #c9a800; box-shadow: 0 0 0 3px rgba(201,168,0,0.15); }
+
+    .card-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #f0e8f0;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .btn {
+      padding: 11px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn-cancel { background: #f0f0f0; color: #616061; }
+    .btn-cancel:hover { background: #e0e0e0; }
+    .btn-submit { background: #4a154b; color: #fff; min-width: 100px; }
+    .btn-submit:hover { background: #611f65; }
+    .btn-submit:disabled { background: #c9a8ca; cursor: not-allowed; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1d1c1d;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #007a5a; }
+    .toast.error { background: #e01e5a; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="logo">チームNA 報告フォーム</div>
+    <div class="sub">入力して送信すると、Slackの該当チャンネルに自動投稿されます</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('evening', this)">🌆 夕方の終了報告</button>
+    <button class="tab-btn" onclick="showTab('design', this)">📋 着手前設計シート</button>
+  </div>
+
+  <!-- ========== 夕方の終了報告 ========== -->
+  <form class="form-card visible" id="tab-evening" onsubmit="submitForm(event, 'evening')">
+    <div class="card-header">
+      <h2>🌆 夕方の終了報告</h2>
+      <p>今日の業務を締めくくりましょう</p>
+    </div>
+    <div class="card-body">
+
+      <div class="block">
+        <label class="block-label" for="e-client">クライアント名 <span class="required">必須</span></label>
+        <select id="e-client" required>
+          <option value="">クライアントを選択...</option>
+        </select>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="e-name">担当者名 <span class="required">必須</span></label>
+        <input type="text" id="e-name" placeholder="例: 田中" required />
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="e-url">日報の場所（URL） <span class="optional">任意</span></label>
+        <input type="url" id="e-url" placeholder="https://notion.so/..." />
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="e-progress">進み具合はどう？ <span class="required">必須</span></label>
+        <select id="e-progress" required>
+          <option value="">選択してください</option>
+          <option value="on_track">予定通り ✅</option>
+          <option value="slightly_behind">やや遅れ ⚠️</option>
+          <option value="behind">大幅遅れ 🔴</option>
+          <option value="ahead">予定より進んでいる 🚀</option>
+        </select>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="e-client-talk">お客さんと何か話した？ <span class="optional">任意</span></label>
+        <textarea id="e-client-talk" placeholder="特になし、または「○○さんと△△の話をした」など"></textarea>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="e-next">次は誰が何をやる？ <span class="required">必須</span></label>
+        <input type="text" id="e-next" placeholder="例: 田中が仕様書を完成させて実装まで着手する" required />
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="e-hitokoto">今日のひとこと <span class="optional">任意</span></label>
+        <input type="text" id="e-hitokoto" placeholder="雑談・ランチ・天気なんでも！" />
+      </div>
+
+      <div class="block">
+        <div class="block-label">緊急トラブル確認 <span class="optional">任意</span></div>
+        <div class="block-hint">クレームや契約外の相談があればチェック</div>
+        <div class="checkbox-group">
+          <label class="checkbox-option">
+            <input type="checkbox" id="e-trouble" />
+            緊急トラブルあり（すぐに電話済み）
+          </label>
+        </div>
+      </div>
+
+      <hr class="divider" />
+      <div class="section-label">週次MTG</div>
+
+      <div class="block">
+        <div class="block-label">週次MTGしたい？ <span class="required">必須</span></div>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="e-weekly-mtg" value="yes" id="e-mtg-yes" />
+            したい
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="e-weekly-mtg" value="no" id="e-mtg-no" checked />
+            しなくてOK
+          </label>
+        </div>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="e-mtg-agenda">週次MTGで話したい内容 <span class="optional">任意</span></label>
+        <div class="block-hint">「したい」を選んだ場合に記入してください</div>
+        <textarea id="e-mtg-agenda" placeholder="例: スプリント振り返り・来週の優先度確認"></textarea>
+      </div>
+
+      <hr class="divider" />
+      <div class="section-label">次の常駐</div>
+
+      <div class="block">
+        <div class="block-label">次の常駐で必要なこと <span class="optional">任意</span></div>
+        <div class="checkbox-group">
+          <label class="checkbox-option">
+            <input type="checkbox" id="e-jochi-needed" value="needed" />
+            ヒアリング・打合せが必要
+          </label>
+        </div>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="e-jochi-content">ヒアリング・打合せの内容 <span class="optional">任意</span></label>
+        <div class="block-hint">何を聞きたいか・話したいかを記入してください</div>
+        <textarea id="e-jochi-content" placeholder="例: 新機能の要件をヒアリング・仕様合意の打合せ"></textarea>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="block highlight-block">
+        <div class="block-label">📌 次回の目標（常駐前日にリマインドされます） <span class="optional">任意</span></div>
+        <div class="block-hint">ここに書いた内容が、次の常駐の前日に自動でリマインドとして届きます</div>
+        <textarea id="e-next-goal" placeholder="例: ダッシュボードの実装を完了させて、テストまで終わらせる"></textarea>
+      </div>
+
+    </div>
+    <div class="card-footer">
+      <button type="button" class="btn btn-cancel" onclick="resetForm('evening')">リセット</button>
+      <button type="submit" class="btn btn-submit" id="e-submit-btn">送信する</button>
+    </div>
+  </form>
+
+  <!-- ========== 着手前設計シート ========== -->
+  <form class="form-card" id="tab-design" onsubmit="submitForm(event, 'design')">
+    <div class="card-header">
+      <h2>📋 着手前設計シート</h2>
+      <p>作る前に整理してチームで共有しましょう</p>
+    </div>
+    <div class="card-body">
+
+      <div class="block">
+        <label class="block-label" for="d-client">クライアント名 <span class="required">必須</span></label>
+        <select id="d-client" required>
+          <option value="">クライアントを選択...</option>
+        </select>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-name">担当者名 <span class="required">必須</span></label>
+        <input type="text" id="d-name" placeholder="例: 田中" required />
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-project">案件名 <span class="required">必須</span></label>
+        <input type="text" id="d-project" placeholder="例: 請求書PDF自動取込み" required />
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-goal">ゴール（何がどうなれば完成？） <span class="required">必須</span></label>
+        <textarea id="d-goal" placeholder="例: 請求書のPDFを入れたら、勝手にスプレッドシートに金額が入る状態" required></textarea>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-start">スタート（何をしたら動き出す？） <span class="required">必須</span></label>
+        <input type="text" id="d-start" placeholder="例: GoogleドライブにPDFを入れる" required />
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-output">ゴール出力（最終的に何が出てくる？） <span class="required">必須</span></label>
+        <input type="text" id="d-output" placeholder="例: スプレッドシートに行が追加されてSlackに通知が来る" required />
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-tools">使う道具（ツール） <span class="optional">任意</span></label>
+        <div class="block-hint">まだ決まってなくてOK！これから調べますでもOK</div>
+        <textarea id="d-tools" placeholder="例: GAS / Notion API / Slack Webhook"></textarea>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-failure">もしもの時（失敗例と対応策） <span class="optional">任意</span></label>
+        <textarea id="d-failure" placeholder="失敗例: 手書きで文字が読めなかったら？&#10;対応策: エラー用フォルダに入れて、人間に「確認して！」とSlack通知を送る"></textarea>
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-deadline-design">設計OKをもらう日 <span class="optional">任意</span></label>
+        <input type="date" id="d-deadline-design" />
+      </div>
+
+      <div class="block">
+        <label class="block-label" for="d-deadline-impl">作り終わる予定日 <span class="optional">任意</span></label>
+        <input type="date" id="d-deadline-impl" />
+      </div>
+
+    </div>
+    <div class="card-footer">
+      <button type="button" class="btn btn-cancel" onclick="resetForm('design')">リセット</button>
+      <button type="submit" class="btn btn-submit" id="d-submit-btn">送信する</button>
+    </div>
+  </form>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // チャンネル一覧を取得してドロップダウンに挿入
+    async function loadChannels() {
+      try {
+        const res = await fetch('/api/channels');
+        const channels = await res.json();
+        ['e-client', 'd-client'].forEach(id => {
+          const sel = document.getElementById(id);
+          channels.forEach(ch => {
+            const opt = document.createElement('option');
+            opt.value = ch.id;
+            opt.textContent = ch.name;
+            sel.appendChild(opt);
+          });
+        });
+      } catch (e) {
+        console.warn('チャンネル一覧の取得に失敗しました:', e);
+      }
+    }
+
+    function showTab(name, btn) {
+      document.querySelectorAll('.form-card').forEach(f => f.classList.remove('visible'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('visible');
+      btn.classList.add('active');
+    }
+
+    function resetForm(name) {
+      document.getElementById('tab-' + name).reset();
+    }
+
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      setTimeout(() => { t.className = 'toast'; }, 3500);
+    }
+
+    async function submitForm(e, type) {
+      e.preventDefault();
+      const btn = document.getElementById(`${type[0]}-submit-btn`);
+      btn.disabled = true;
+      btn.textContent = '送信中...';
+
+      let payload;
+      if (type === 'evening') {
+        const jochiNeeds = document.getElementById('e-jochi-needed').checked ? ['needed'] : [];
+
+        payload = {
+          channelId: document.getElementById('e-client').value,
+          submitterName: document.getElementById('e-name').value,
+          nippouUrl: document.getElementById('e-url').value || null,
+          progress: document.getElementById('e-progress').value,
+          clientInteraction: document.getElementById('e-client-talk').value || null,
+          nextAction: document.getElementById('e-next').value,
+          hitokoto: document.getElementById('e-hitokoto').value || null,
+          hasTrouble: document.getElementById('e-trouble').checked,
+          weeklyMtg: document.querySelector('input[name="e-weekly-mtg"]:checked').value,
+          weeklyMtgAgenda: document.getElementById('e-mtg-agenda').value || null,
+          jochiNeeds,
+          jochiContent: document.getElementById('e-jochi-content').value || null,
+          nextGoal: document.getElementById('e-next-goal').value || null,
+        };
+      } else {
+        payload = {
+          channelId: document.getElementById('d-client').value,
+          submitterName: document.getElementById('d-name').value,
+          projectName: document.getElementById('d-project').value,
+          goal: document.getElementById('d-goal').value,
+          start: document.getElementById('d-start').value,
+          output: document.getElementById('d-output').value,
+          tools: document.getElementById('d-tools').value || null,
+          failure: document.getElementById('d-failure').value || null,
+          deadlineDesign: document.getElementById('d-deadline-design').value || null,
+          deadlineImpl: document.getElementById('d-deadline-impl').value || null,
+        };
+      }
+
+      try {
+        const res = await fetch(`/api/submit/${type}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (json.ok) {
+          showToast('✅ Slackに送信しました！', 'success');
+          document.getElementById('tab-' + type).reset();
+          await loadChannels(); // ドロップダウンを再構築
+        } else {
+          showToast('❌ 送信に失敗しました: ' + json.error, 'error');
+        }
+      } catch (err) {
+        showToast('❌ 通信エラーが発生しました', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '送信する';
+      }
+    }
+
+    loadChannels();
+  </script>
+</body>
+</html>
