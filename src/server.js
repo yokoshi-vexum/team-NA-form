@@ -138,9 +138,35 @@ function createServer(slackApp) {
   app.use(express.json());
   app.use(express.static(path.join(__dirname, '../public')));
 
-  // クライアント一覧を返す
-  app.get('/api/channels', (req, res) => {
-    res.json(getClientChannels());
+  // ボットが参加しているチャンネル一覧を自動取得
+  app.get('/api/channels', async (req, res) => {
+    try {
+      const results = [];
+      let cursor;
+
+      do {
+        const resp = await slackApp.client.conversations.list({
+          types: 'public_channel,private_channel',
+          exclude_archived: true,
+          limit: 200,
+          cursor,
+        });
+        results.push(...resp.channels.filter(ch => ch.is_member));
+        cursor = resp.response_metadata?.next_cursor;
+      } while (cursor);
+
+      const channels = results.map(ch => ({
+        id: ch.id,
+        name: ch.name,
+        channelName: `#${ch.name}`,
+      }));
+
+      res.json(channels);
+    } catch (err) {
+      console.error('[API] channels fetch error:', err.message);
+      // フォールバック: settings.json から返す
+      res.json(getClientChannels());
+    }
   });
 
   // 夕方の終了報告
