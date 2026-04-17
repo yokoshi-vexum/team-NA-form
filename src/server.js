@@ -151,12 +151,22 @@ function createServer(slackApp) {
     if (d.nextGoal) saveGoal(d.channelId, d.nextGoal);
 
     try {
+      // 親メッセージ（チャンネルに表示される一行）
+      const today = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
+      const parent = await slackApp.client.chat.postMessage({
+        channel: d.channelId,
+        text: `🌆 【業務終了】${d.submitterName || ''} (${today})`,
+      });
+
+      // 詳細はスレッドに流す
       const blocks = buildEveningBlocks(d);
       await slackApp.client.chat.postMessage({
         channel: d.channelId,
+        thread_ts: parent.ts,
         blocks,
         text: `【業務終了】${d.submitterName || ''} の終了報告`,
       });
+
       res.json({ ok: true });
     } catch (err) {
       console.error('[API] evening submit error:', err.message);
@@ -170,12 +180,22 @@ function createServer(slackApp) {
     if (!d.channelId) return res.status(400).json({ ok: false, error: 'channelId is required' });
 
     try {
+      // 親メッセージ
+      const today = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
+      const parent = await slackApp.client.chat.postMessage({
+        channel: d.channelId,
+        text: `📋 【着手前設計シート】${d.submitterName || ''} / ${d.projectName || ''} (${today})`,
+      });
+
+      // 詳細はスレッドに流す
       const blocks = buildDesignBlocks(d);
       await slackApp.client.chat.postMessage({
         channel: d.channelId,
+        thread_ts: parent.ts,
         blocks,
         text: `【着手前設計シート】${d.submitterName || ''} / ${d.projectName || ''}`,
       });
+
       res.json({ ok: true });
     } catch (err) {
       console.error('[API] design submit error:', err.message);
