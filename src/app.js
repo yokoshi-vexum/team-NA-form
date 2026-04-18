@@ -1,46 +1,38 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const { App, ExpressReceiver } = require('@slack/bolt');
+const { startReminderScheduler } = require('./scheduler/reminder');
 const { getClientChannels } = require('./utils/config');
 const { saveGoal } = require('./utils/goalStore');
 
-// ─── Express を最初に起動（ポートを即座にバインド）─────────────────
 const PORT = process.env.PORT || 3000;
-const expressApp = express();
-expressApp.use(express.json());
-expressApp.use(express.static(path.join(__dirname, '../public')));
 
-// Slackクライアントは後から注入するため変数で管理
-let slackClient = null;
-
-// チャンネル一覧（Slack APIから取得、失敗時はconfig fallback）
-expressApp.get('/api/channels', async (req, res) => {
-  try {
-    if (!slackClient) throw new Error('Slack未接続');
-    const results = [];
-    let cursor;
-    do {
-      const resp = await slackClient.conversations.list({
-        types: 'public_channel,private_channel',
-        exclude_archived: true,
-        limit: 200,
-        cursor,
-      });
-      results.push(...resp.channels.filter(ch => ch.is_member));
-      cursor = resp.response_metadata?.next_cursor;
-    } while (cursor);
-
-    res.json(results.map(ch => ({ id: ch.id, name: ch.name, channelName: `#${ch.name}` })));
-  } catch {
-    res.json(getClientChannels());
-  }
+// ─── Slack HTTP Mode（ExpressReceiver）────────────────────────────
+const receiver = new ExpressReceiver({
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
 });
+
+const slackApp = new App({
+  token: process.env.SLACK_BOT_TOKEN,
+  receiver,
+});
+
+// Slackコマンド・モーダル
+require('./commands/na')(slackApp);
+require('./handlers/menuAction')(slackApp);
+require('./handlers/eveningSubmit')(slackApp);
+require('./handlers/designSubmit')(slackApp);
+
+// ─── Express（receiver.app を流用）────────────────────────────────
+const app = receiver.app;
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
 
 const PROGRESS_LABELS = {
   on_track: '予定通り ✅', slightly_behind: 'やや遅れ ⚠️',
   behind: '大幅遅れ 🔴', ahead: '予定より進んでいる 🚀',
 };
-
 function userDisplay(name) { return name ? `*${name}*` : '（名前未設定）'; }
 
 function buildEveningBlocks(d) {
@@ -91,19 +83,39 @@ function buildDesignBlocks(d) {
   return blocks;
 }
 
+// チャンネル一覧API
+app.get('/api/channels', async (req, res) => {
+  try {
+    const results = [];
+    let cursor;
+    do {
+      const resp = await slackApp.client.conversations.list({
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
+        limit: 200,
+        cursor,
+      });
+      results.push(...resp.channels.filter(ch => ch.is_member));
+      cursor = resp.response_metadata?.next_cursor;
+    } while (cursor);
+    res.json(results.map(ch => ({ id: ch.id, name: ch.name, channelName: `#${ch.name}` })));
+  } catch {
+    res.json(getClientChannels());
+  }
+});
+
 // 夕方の終了報告
-expressApp.post('/api/submit/evening', async (req, res) => {
+app.post('/api/submit/evening', async (req, res) => {
   const d = req.body;
   if (!d.channelId) return res.status(400).json({ ok: false, error: 'channelId is required' });
-  if (!slackClient) return res.status(503).json({ ok: false, error: 'Slack未接続' });
   if (d.nextGoal) saveGoal(d.channelId, d.nextGoal);
   try {
     const today = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
-    const parent = await slackClient.chat.postMessage({
+    const parent = await slackApp.client.chat.postMessage({
       channel: d.channelId,
       text: `🌆 【業務終了】${d.submitterName || ''} (${today})`,
     });
-    await slackClient.chat.postMessage({
+    await slackApp.client.chat.postMessage({
       channel: d.channelId,
       thread_ts: parent.ts,
       blocks: buildEveningBlocks(d),
@@ -117,17 +129,16 @@ expressApp.post('/api/submit/evening', async (req, res) => {
 });
 
 // 着手前設計シート
-expressApp.post('/api/submit/design', async (req, res) => {
+app.post('/api/submit/design', async (req, res) => {
   const d = req.body;
   if (!d.channelId) return res.status(400).json({ ok: false, error: 'channelId is required' });
-  if (!slackClient) return res.status(503).json({ ok: false, error: 'Slack未接続' });
   try {
     const today = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
-    const parent = await slackClient.chat.postMessage({
+    const parent = await slackApp.client.chat.postMessage({
       channel: d.channelId,
       text: `📋 【着手前設計シート】${d.submitterName || ''} / ${d.projectName || ''} (${today})`,
     });
-    await slackClient.chat.postMessage({
+    await slackApp.client.chat.postMessage({
       channel: d.channelId,
       thread_ts: parent.ts,
       blocks: buildDesignBlocks(d),
@@ -140,34 +151,9 @@ expressApp.post('/api/submit/design', async (req, res) => {
   }
 });
 
-// ポートをバインド
-expressApp.listen(PORT, () => {
-  console.log(`Web フォーム起動: port ${PORT}`);
-});
-
-// ─── Slack Bot を非同期で起動（失敗してもWebフォームは動く）────────
-async function initSlack() {
-  const { App } = require('@slack/bolt');
-  const { startReminderScheduler } = require('./scheduler/reminder');
-
-  const slackApp = new App({
-    token: process.env.SLACK_BOT_TOKEN,
-    signingSecret: process.env.SLACK_SIGNING_SECRET,
-    socketMode: true,
-    appToken: process.env.SLACK_APP_TOKEN,
-  });
-
-  require('./commands/na')(slackApp);
-  require('./handlers/menuAction')(slackApp);
-  require('./handlers/eveningSubmit')(slackApp);
-  require('./handlers/designSubmit')(slackApp);
-
-  await slackApp.start();
-  slackClient = slackApp.client; // Expressルートから使えるように注入
+// ─── 起動 ────────────────────────────────────────────────────────
+(async () => {
+  await slackApp.start(PORT);
   startReminderScheduler(slackApp);
-  console.log('Slack Bot 接続完了 (Socket Mode)');
-}
-
-initSlack().catch(err => {
-  console.error('Slack Bot 接続失敗（Webフォームは引き続き利用可能）:', err.message);
-});
+  console.log(`チームNA Bot 起動完了 (port ${PORT})`);
+})();
