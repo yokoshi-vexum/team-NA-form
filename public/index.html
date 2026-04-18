@@ -347,10 +347,17 @@
       </div>
 
       <hr class="divider" />
+      <div class="section-label">次回常駐のリマインド設定</div>
 
       <div class="block highlight-block">
-        <div class="block-label">📌 次回の目標（常駐前日にリマインドされます） <span class="optional">任意</span></div>
-        <div class="block-hint">ここに書いた内容が、次の常駐の前日に自動でリマインドとして届きます</div>
+        <div class="block-label">📅 次回常駐日 <span class="optional">任意</span></div>
+        <div class="block-hint">入力すると前日の20:00に自動でリマインドが届きます</div>
+        <input type="date" id="e-next-jochi-date" />
+      </div>
+
+      <div class="block highlight-block" style="margin-top:12px;">
+        <div class="block-label">📌 次回はどこまで終わらせるのが目標？ <span class="optional">任意</span></div>
+        <div class="block-hint">前日のリマインドにそのまま載ります</div>
         <textarea id="e-next-goal" placeholder="例: ダッシュボードの実装を完了させて、テストまで終わらせる"></textarea>
       </div>
 
@@ -492,6 +499,7 @@
           weeklyMtgAgenda: document.getElementById('e-mtg-agenda').value || null,
           jochiNeeds,
           jochiContent: document.getElementById('e-jochi-content').value || null,
+          nextJochiDate: document.getElementById('e-next-jochi-date').value || null,
           nextGoal: document.getElementById('e-next-goal').value || null,
         };
       } else {

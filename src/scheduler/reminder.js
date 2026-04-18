@@ -1,5 +1,6 @@
 const cron = require('node-cron');
-const { getJochiDates, getConfig } = require('../utils/config');
+const { getConfig } = require('../utils/config');
+const { getChannelsWithTomorrowJochi } = require('../utils/goalStore');
 
 function getTomorrowDateJST() {
   const now = new Date();
@@ -18,24 +19,36 @@ function startReminderScheduler(app) {
     cronExpression,
     async () => {
       const tomorrow = getTomorrowDateJST();
-      const jochiDates = getJochiDates();
-      const matches = jochiDates.filter((entry) => entry.date === tomorrow);
+
+      // フォームから登録された常駐日程をチェック
+      const matches = getChannelsWithTomorrowJochi(tomorrow);
 
       for (const entry of matches) {
         try {
+          const goalText = entry.goal
+            ? `\n\n*📌 次回はどこまで終わらせるのが目標？*\n${entry.goal}`
+            : '';
+
           await app.client.chat.postMessage({
             channel: entry.channelId,
-            text: `📅 明日 *${entry.date}* は *${entry.clientName}* への常駐日です。\nNAする方は準備・連絡をお願いします！`,
+            text: `明日は常駐日です`,
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `📅 明日 *${tomorrow}* は常駐日です。\nNAする方は準備・連絡をお願いします！${goalText}`,
+                },
+              },
+            ],
           });
-          console.log(`[Reminder] Posted for ${entry.clientName} (${entry.date})`);
+          console.log(`[Reminder] Posted for channel ${entry.channelId} (${tomorrow})`);
         } catch (err) {
-          console.error(`[Reminder] Failed to post for ${entry.clientName}:`, err.message);
+          console.error(`[Reminder] Failed for channel ${entry.channelId}:`, err.message);
         }
       }
     },
-    {
-      timezone: config.timezone,
-    }
+    { timezone: config.timezone }
   );
 
   console.log(`[Scheduler] 常駐前日リマインダー起動 (毎日 ${config.reminderTime} ${config.timezone})`);

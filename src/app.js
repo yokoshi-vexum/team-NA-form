@@ -108,7 +108,7 @@ app.get('/api/channels', async (req, res) => {
 app.post('/api/submit/evening', async (req, res) => {
   const d = req.body;
   if (!d.channelId) return res.status(400).json({ ok: false, error: 'channelId is required' });
-  if (d.nextGoal) saveGoal(d.channelId, d.nextGoal);
+  if (d.nextGoal || d.nextJochiDate) saveGoal(d.channelId, d.nextGoal, d.nextJochiDate);
   try {
     const today = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
     const parent = await slackApp.client.chat.postMessage({
